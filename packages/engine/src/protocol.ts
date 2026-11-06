@@ -27,6 +27,9 @@ export type ClientMsg =
   | { t: 'resign' }
   | { t: 'draw_offer' }
   | { t: 'draw_reply'; accept: boolean }
+  /** 请求悔棋：撤回自己最近一步（若对方已应对则连同对方那一步） */
+  | { t: 'undo_offer' }
+  | { t: 'undo_reply'; accept: boolean }
   /** 一局结束后请求再来一局；双方都请求后交换红黑重新开局 */
   | { t: 'rematch' };
 
@@ -51,6 +54,10 @@ export type ServerMsg =
   | { t: 'opponent'; online: boolean }
   | { t: 'draw_offer' }
   | { t: 'draw_declined' }
+  | { t: 'undo_offer' }
+  | { t: 'undo_declined' }
+  /** 同意悔棋：客户端撤回最后 count 步 */
+  | { t: 'undo'; count: number }
   | { t: 'rematch_offer' }
   | { t: 'opponent_left' }
   | { t: 'error'; message: string };

@@ -35,6 +35,7 @@ interface Room {
   state: GameState | null;
   moves: Move[];
   drawOffer: Color | null;
+  undoOffer: Color | null;
   /** 已请求再来一局的玩家 */
   rematch: Set<string>;
   over: { winner: Color | null; reason: EndReason } | null;
@@ -175,6 +176,29 @@ export class Hub {
         else this.notifyOpponent(room, s, { t: 'draw_declined' });
         return;
       }
+      case 'undo_offer': {
+        const room = this.playingRoom(s);
+        if (this.undoCount(room, room.colors[s.id]) === 0) throw new Error('你还没有走过棋，无法悔棋');
+        room.undoOffer = room.colors[s.id];
+        this.notifyOpponent(room, s, { t: 'undo_offer' });
+        return;
+      }
+      case 'undo_reply': {
+        const room = this.playingRoom(s);
+        const mine = room.colors[s.id];
+        if (!room.undoOffer || room.undoOffer === mine) throw new Error('没有待回复的悔棋请求');
+        const count = this.undoCount(room, room.undoOffer);
+        room.undoOffer = null;
+        if (msg.accept && count > 0) {
+          room.moves.splice(room.moves.length - count, count);
+          let st = createGame(room.seed, room.first);
+          for (const m of room.moves) st = applyMove(st, m).state;
+          room.state = st;
+          room.drawOffer = null;
+          this.broadcastRoom(room, { t: 'undo', count });
+        } else this.notifyOpponent(room, s, { t: 'undo_declined' });
+        return;
+      }
       default:
         throw new Error('未知消息');
     }
@@ -197,6 +221,7 @@ export class Hub {
       state: null,
       moves: [],
       drawOffer: null,
+      undoOffer: null,
       rematch: new Set(),
       over: null,
     };
@@ -232,6 +257,7 @@ export class Hub {
     room.state = createGame(room.seed, room.first);
     room.moves = [];
     room.drawOffer = null;
+    room.undoOffer = null;
     room.rematch.clear();
     room.over = null;
     room.status = 'playing';
@@ -282,6 +308,7 @@ export class Hub {
     room.state = result.state;
     room.moves.push(move);
     room.drawOffer = null;
+    room.undoOffer = null;
     this.broadcastRoom(room, { t: 'move', move });
 
     if (result.state.winner) {
@@ -294,6 +321,16 @@ export class Hub {
   }
 
   // ---------- 辅助 ----------
+
+  /** 请求方悔棋需要撤回的步数：0 表示请求方还没走过 */
+  private undoCount(room: Room, c: Color): number {
+    const n = room.moves.length;
+    if (n === 0) return 0;
+    // 红方永远先走：偶数序号是红方的步
+    const lastMover: Color = (n - 1) % 2 === 0 ? 'red' : 'black';
+    const count = lastMover === c ? 1 : 2;
+    return n >= count ? count : 0;
+  }
 
   private playingRoom(s: Session): Room {
     const room = s.roomId ? this.rooms.get(s.roomId) : undefined;
@@ -337,6 +374,9 @@ export class Hub {
     });
     if (room.drawOffer && room.drawOffer !== room.colors[s.id] && room.status === 'playing') {
       this.send(s, { t: 'draw_offer' });
+    }
+    if (room.undoOffer && room.undoOffer !== room.colors[s.id] && room.status === 'playing') {
+      this.send(s, { t: 'undo_offer' });
     }
     if (room.status === 'ended') {
       if (oppId && room.rematch.has(oppId)) this.send(s, { t: 'rematch_offer' });

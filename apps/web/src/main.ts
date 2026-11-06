@@ -108,12 +108,15 @@ function onServer(m: ServerMsg) {
       render();
       break;
     case 'waiting':
+      if (mode === 'none' && serverAvailable) startServerMode();
       waitingId = m.roomId;
       if (mode === 'host') hostReady = true;
       screen = 'waiting';
       render();
       break;
     case 'game':
+      // 刷新页面后由服务器恢复的会话：mode/link 需要补上，否则按钮发不出消息
+      if (mode === 'none' && serverAvailable) startServerMode();
       isLocal = false;
       disposePanel?.();
       disposePanel = null;
@@ -135,6 +138,8 @@ function onServer(m: ServerMsg) {
           resign: () => link?.send({ t: 'resign' }),
           offerDraw: () => link?.send({ t: 'draw_offer' }),
           replyDraw: (accept) => link?.send({ t: 'draw_reply', accept }),
+          offerUndo: () => link?.send({ t: 'undo_offer' }),
+          replyUndo: (accept) => link?.send({ t: 'undo_reply', accept }),
           leave: () => link?.send({ t: 'leave' }),
           rematch: () => link?.send({ t: 'rematch' }),
         },
@@ -157,6 +162,15 @@ function onServer(m: ServerMsg) {
       break;
     case 'draw_offer':
       game?.setIncomingDraw(true);
+      break;
+    case 'undo_offer':
+      game?.setIncomingUndo(true);
+      break;
+    case 'undo':
+      game?.onUndo(m.count);
+      break;
+    case 'undo_declined':
+      game?.onUndoDeclined();
       break;
     case 'rematch_offer':
       game?.onRematchOffer();
@@ -261,6 +275,8 @@ function startLocal(flip = false) {
       resign: () => game?.onEnd({ winner: null, reason: 'draw' }),
       offerDraw: () => game?.onEnd({ winner: null, reason: 'draw' }),
       replyDraw: () => {},
+      offerUndo: () => game?.onUndo(1),
+      replyUndo: () => {},
       rematch: () => {},
       leave: () => {
         isLocal = false;

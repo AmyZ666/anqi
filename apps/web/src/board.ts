@@ -19,6 +19,8 @@ export interface BoardView {
   selected: Pos | null;
   targets: Pos[];
   lastMove: { from: Pos; to: Pos } | null;
+  /** 终局：亮出所有暗子 */
+  revealAll?: boolean;
 }
 
 const ns = 'http://www.w3.org/2000/svg';
@@ -79,9 +81,16 @@ export function renderBoard(view: BoardView, onClick: (p: Pos) => void): SVGSVGE
       const cx = px(x);
       const cy = py(y);
       const isSel = view.selected?.x === x && view.selected?.y === y;
-      if (p.revealed) {
+      if (p.revealed || view.revealAll) {
         const col = p.color === 'red' ? '#c0392b' : '#1c1c1c';
-        g.append(el('circle', { cx, cy, r: 24, fill: '#fbefd0', stroke: col, 'stroke-width': isSel ? 4 : 2.5 }));
+        // 终局亮出的原暗子用虚线圈区分
+        const unflipped = !p.revealed;
+        g.append(
+          el('circle', {
+            cx, cy, r: 24, fill: unflipped ? '#f1e3c0' : '#fbefd0', stroke: col,
+            'stroke-width': isSel ? 4 : 2.5, ...(unflipped ? { 'stroke-dasharray': '5 3' } : {}),
+          }),
+        );
         g.append(el('circle', { cx, cy, r: 19.5, fill: 'none', stroke: col, 'stroke-width': 1 }));
         g.append(el('text', { x: cx, y: cy + 9, class: 'piece', fill: col, 'text-anchor': 'middle' }, NAMES[p.color][p.type]));
       } else {

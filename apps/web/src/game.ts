@@ -17,6 +17,8 @@ export interface GameActions {
   resign(): void;
   offerDraw(): void;
   replyDraw(accept: boolean): void;
+  offerUndo(): void;
+  replyUndo(accept: boolean): void;
   leave(): void;
   rematch(): void;
 }
@@ -60,6 +62,9 @@ export class GameScreen {
   private pending = false;
   private incomingDraw = false;
   private drawSent = false;
+  private incomingUndo = false;
+  private undoSent = false;
+  private moves: Move[] = [];
   private rematchSent = false;
   private rematchIncoming = false;
   private opponentLeft = false;
@@ -118,6 +123,36 @@ export class GameScreen {
     this.render();
   }
 
+  /** 悔棋：撤回最后 count 步，从头回放 */
+  onUndo(count: number) {
+    const keep = this.moves.slice(0, Math.max(0, this.moves.length - count));
+    this.state = createGame(this.o.seed, this.o.first);
+    this.moves = [];
+    this.log = [];
+    this.captured = { red: [], black: [] };
+    this.lastMove = null;
+    this.selected = null;
+    this.targets = [];
+    this.pending = false;
+    this.incomingUndo = false;
+    this.undoSent = false;
+    for (const m of keep) this.apply(m);
+    this.notice = '已悔棋';
+    this.render();
+  }
+
+  setIncomingUndo(v: boolean) {
+    this.incomingUndo = v;
+    if (!v) this.undoSent = false;
+    this.render();
+  }
+
+  onUndoDeclined() {
+    this.undoSent = false;
+    this.notice = '对方拒绝了悔棋';
+    this.render();
+  }
+
   onDrawDeclined() {
     this.drawSent = false;
     this.notice = '对方拒绝了和棋';
@@ -141,13 +176,17 @@ export class GameScreen {
     } catch {
       return; // 与服务器不一致时忽略，等待重连同步
     }
+    this.moves.push(m);
     this.lastMove = m;
     this.selected = null;
     this.targets = [];
     this.notice = '';
     this.drawSent = false;
     this.incomingDraw = false;
-    if (ev.captured) this.captured[ev.captured.color].push(ev.captured);
+    this.incomingUndo = false;
+    this.undoSent = false;
+    // 按吃子的一方归类（无论吃的是己方还是对方的子）
+    if (ev.captured) this.captured[mover].push(ev.captured);
     let text = `${this.log.length + 1}. ${colorName(mover)}方：`;
     text += ev.flipped ? `暗子翻开是【${pieceName(ev.piece)}】` : pieceName(ev.piece);
     if (ev.captured) text += `，吃掉【${pieceName(ev.captured)}】`;
@@ -168,6 +207,12 @@ export class GameScreen {
 
   private click(p: Pos) {
     if (!this.myTurn() || this.pending) return;
+    if (this.selected && this.selected.x === p.x && this.selected.y === p.y) {
+      this.selected = null;
+      this.targets = [];
+      this.render();
+      return;
+    }
     if (this.selected && this.targets.some((t) => t.x === p.x && t.y === p.y)) {
       const move = { from: this.selected, to: p };
       this.selected = null;
@@ -211,7 +256,7 @@ export class GameScreen {
       mode === 'online'
         ? `<span class="dot ${this.opponentOnline ? 'on' : 'off'}"></span><b>${esc(this.o.opponentName)}</b>
            <span class="tag ${oppColor}">${colorName(oppColor)}方</span>
-           <span class="grow"></span><span class="taken">${this.capturedChips(oppColor === 'red' ? 'black' : 'red')}</span>`
+           <span class="grow"></span><span class="taken">${this.capturedChips(oppColor)}</span>`
         : `<b>本地双人（调试）</b><span class="grow"></span>`;
     wrap.append(top);
 
@@ -223,6 +268,7 @@ export class GameScreen {
           selected: this.selected,
           targets: this.targets,
           lastMove: this.lastMove,
+          revealAll: !!this.over,
         },
         (p) => this.click(p),
       ),
@@ -257,6 +303,24 @@ export class GameScreen {
         n.textContent = msg;
         wrap.append(n);
       }
+    }
+
+    if (this.incomingUndo && !this.over) {
+      const b = document.createElement('div');
+      b.className = 'banner';
+      b.innerHTML = `<span>对方请求悔棋</span>`;
+      b.append(
+        btn('同意', () => {
+          this.incomingUndo = false;
+          actions.replyUndo(true);
+        }),
+        btn('拒绝', () => {
+          this.incomingUndo = false;
+          actions.replyUndo(false);
+          this.render();
+        }),
+      );
+      wrap.append(b);
     }
 
     if (this.incomingDraw && !this.over) {
@@ -302,6 +366,11 @@ export class GameScreen {
           actions.offerDraw();
           this.render();
         }, '', this.drawSent),
+        btn(this.undoSent ? '已请求悔棋' : '悔棋', () => {
+          if (mode === 'online') this.undoSent = true;
+          actions.offerUndo();
+          this.render();
+        }, '', this.undoSent || this.moves.length === 0),
         btn('认输', () => confirm('确定认输吗？') && actions.resign()),
         btn('离开', () => confirm(mode === 'online' ? '中途离开将判负，确定吗？' : '结束本局？') && actions.leave()),
       );
@@ -320,11 +389,11 @@ export class GameScreen {
     root.append(wrap);
   }
 
-  /** color 一方被吃掉的子 */
+  /** color 一方吃掉的子（含己方的暗子） */
   private capturedChips(color: Color) {
     const list = this.captured[color];
     if (!list.length) return '';
-    return `被吃：` + list.map((p) => `<i class="chip ${p.color}">${pieceName(p).slice(1)}</i>`).join('');
+    return `吃：` + list.map((p) => `<i class="chip ${p.color}">${pieceName(p).slice(1)}</i>`).join('');
   }
 }
 

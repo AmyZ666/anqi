@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getAllLegalMoves, createGame, type Move, type ServerMsg } from '@anqi/engine';
+import { applyMove, getAllLegalMoves, createGame, type Move, type ServerMsg } from '@anqi/engine';
 import { Hub, type Conn } from '../src';
 
 function client(hub: Hub, name: string) {
@@ -46,6 +46,60 @@ describe('Hub', () => {
     hub = new Hub({ playingGraceMs: 1000, idleGraceMs: 5000 });
   });
   afterEach(() => vi.useRealTimers());
+
+  describe('悔棋', () => {
+    function play(n: number) {
+      const { a, b, ga } = startGame(hub);
+      const red = ga.you === 'red' ? a : b;
+      const black = red === a ? b : a;
+      let st = createGame(ga.seed, 'red');
+      const moves: Move[] = [];
+      for (let i = 0; i < n; i++) {
+        const m = getAllLegalMoves(st)[0];
+        (i % 2 === 0 ? red : black).send({ t: 'move', move: m });
+        st = applyMove(st, m).state;
+        moves.push(m);
+      }
+      return { red, black, seed: ga.seed, moves };
+    }
+
+    it('没走过棋不能悔棋', () => {
+      const { black } = play(1);
+      black.send({ t: 'undo_offer' });
+      expect(black.last('error')).toBeDefined();
+    });
+
+    it('同意后撤回自己刚走的一步，并可重新走', () => {
+      const { red, black, seed, moves } = play(1);
+      red.send({ t: 'undo_offer' });
+      expect(black.last('undo_offer')).toBeDefined();
+      black.send({ t: 'undo_reply', accept: true });
+      expect(red.last('undo')!.count).toBe(1);
+      expect(black.last('undo')!.count).toBe(1);
+      red.clear();
+      red.send({ t: 'move', move: moves[0] });
+      expect(red.last('error')).toBeUndefined();
+      expect(seed).toBeTypeOf('number');
+    });
+
+    it('对方已应对时撤回两步；拒绝则不变', () => {
+      const { red, black } = play(2);
+      red.send({ t: 'undo_offer' });
+      black.send({ t: 'undo_reply', accept: false });
+      expect(red.last('undo_declined')).toBeDefined();
+      expect(red.last('undo')).toBeUndefined();
+      red.send({ t: 'undo_offer' });
+      black.send({ t: 'undo_reply', accept: true });
+      expect(red.last('undo')!.count).toBe(2);
+    });
+
+    it('自己不能同意自己的悔棋请求', () => {
+      const { red } = play(1);
+      red.send({ t: 'undo_offer' });
+      red.send({ t: 'undo_reply', accept: true });
+      expect(red.last('error')).toBeDefined();
+    });
+  });
 
   it('新玩家收到大厅，创建房间后其他人在大厅看到', () => {
     const a = client(hub, 'A');
