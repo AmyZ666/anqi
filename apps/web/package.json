@@ -1,0 +1,23 @@
+{
+  "name": "@anqi/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anqi/engine": "*",
+    "@anqi/hub": "^0.1.0",
+    "jsqr": "^1.4.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.6",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "vite-plugin-pwa": "^2.0.0"
+  }
+}

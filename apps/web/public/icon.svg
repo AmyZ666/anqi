@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#e9c98e"/>
+  <circle cx="256" cy="256" r="170" fill="#6b8e7a" stroke="#3d5a4a" stroke-width="14"/>
+  <circle cx="256" cy="256" r="138" fill="none" stroke="#c8dccf" stroke-width="5"/>
+  <text x="256" y="318" font-size="190" font-weight="700" text-anchor="middle" fill="#e6f0ea" font-family="KaiTi, STKaiti, 'Kaiti SC', 'Microsoft YaHei', serif">暗</text>
+</svg>

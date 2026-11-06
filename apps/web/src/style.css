@@ -1,0 +1,67 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #f4efe4; color: #2b2118; font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-tap-highlight-color: transparent; }
+#app { max-width: 520px; margin: 0 auto; padding: 12px; padding-bottom: env(safe-area-inset-bottom); }
+
+button { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid #b9a37a; background: #fff8e6; color: inherit; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+button.primary { background: #2f7d32; border-color: #2f7d32; color: #fff; }
+button.link { background: none; border: none; color: #7a6a4c; text-decoration: underline; margin-top: 24px; }
+input { font: inherit; padding: 10px 12px; border-radius: 8px; border: 1px solid #b9a37a; width: 100%; background: #fffdf6; }
+
+.lobby h1 { margin: 8px 0 4px; font-size: 28px; letter-spacing: 6px; }
+.lobby h2 { margin: 24px 0 8px; font-size: 16px; color: #7a6a4c; }
+.conn { font-size: 12px; margin-bottom: 12px; color: #7a6a4c; }
+.conn.online { color: #2f7d32; }
+.conn.offline { color: #c0392b; }
+.field { display: block; margin-bottom: 12px; font-size: 13px; color: #7a6a4c; }
+.field input { margin-top: 4px; }
+.rooms .room { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; margin-bottom: 8px; background: #fff8e6; border: 1px solid #e0d2b0; border-radius: 10px; }
+.muted { color: #9a8b6c; font-size: 13px; }
+.card { background: #fff8e6; border: 1px solid #e0d2b0; border-radius: 12px; padding: 16px; text-align: center; }
+.code { font-size: 26px; letter-spacing: 4px; }
+
+.game { display: flex; flex-direction: column; gap: 8px; }
+.board { width: 100%; height: auto; display: block; touch-action: manipulation; user-select: none; }
+.board .piece { font-size: 26px; font-weight: 700; font-family: "KaiTi", "STKaiti", "Kaiti SC", serif; }
+.board .piece.dark { font-size: 22px; opacity: .9; }
+.board .river { font-size: 22px; fill: #8a6a3a; font-family: "KaiTi", "STKaiti", serif; letter-spacing: 6px; }
+
+.bar { display: flex; align-items: center; gap: 8px; font-size: 14px; min-height: 28px; }
+.grow { flex: 1; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot.on { background: #2f7d32; }
+.dot.off { background: #c0392b; }
+.tag { padding: 1px 8px; border-radius: 10px; font-size: 12px; color: #fff; }
+.tag.red { background: #c0392b; }
+.tag.black { background: #222; }
+.taken { font-size: 12px; color: #7a6a4c; display: flex; gap: 3px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.chip { font-style: normal; padding: 0 4px; border-radius: 4px; border: 1px solid; background: #fbefd0; }
+.chip.red { color: #c0392b; border-color: #c0392b; }
+.chip.black { color: #222; border-color: #222; }
+
+.status { text-align: center; padding: 8px; border-radius: 8px; background: #e8e0cc; font-weight: 600; }
+.status.mine { background: #2f7d32; color: #fff; }
+.status.over { background: #2b2118; color: #fff; }
+.notice { text-align: center; color: #c0392b; font-size: 13px; }
+.banner { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff2cc; border: 1px solid #e6c875; border-radius: 8px; }
+.banner span { flex: 1; }
+.row { display: flex; gap: 8px; }
+.row button { flex: 1; }
+.log { font-size: 13px; color: #6a5a3c; line-height: 1.6; }
+
+.toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: rgba(0,0,0,.8); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 14px; z-index: 10; }
+
+/* 点对点连接面板 */
+.lobby h2 .muted { font-weight: 400; margin-left: 6px; }
+.panel-box { background: #fff8e6; border: 1px solid #e0d2b0; border-radius: 12px; padding: 14px; margin-top: 12px; }
+.step { margin: 0 0 10px; font-weight: 600; }
+.qr { background: #fff; border-radius: 8px; padding: 6px; max-width: 360px; margin: 0 auto; }
+.qr svg { width: 100%; height: auto; display: block; }
+.hint { font-size: 13px; color: #7a6a4c; margin: 8px 0; }
+.hint.warn { color: #b9561f; }
+textarea.code { width: 100%; font: 12px/1.4 ui-monospace, Consolas, monospace; padding: 8px; border: 1px solid #b9a37a; border-radius: 8px; background: #fffdf6; margin-top: 8px; word-break: break-all; }
+.scan-area { margin: 8px 0; }
+video.scanner { width: 100%; max-height: 60vh; border-radius: 10px; background: #000; object-fit: cover; }
+.inline-toast { align-self: center; font-size: 13px; color: #2f7d32; }
+.panel-box .row { margin-top: 10px; }
+.panel-box > button { margin-top: 8px; }

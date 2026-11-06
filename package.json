@@ -1,0 +1,17 @@
+{
+  "name": "anqi",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev -w @anqi/server",
+    "dev:web": "npm run dev -w @anqi/web",
+    "build": "npm run build -w @anqi/web && npm run build -w @anqi/server",
+    "test": "npm run test -w @anqi/engine && npm run test -w @anqi/hub",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "smoke": "tsx tools/smoke.ts"
+  }
+}
